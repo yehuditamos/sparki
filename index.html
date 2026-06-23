@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ספארקי</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="confetti-container"></div>
+
+<div class="container">
+
+    <!-- מסך שם -->
+    <div id="name-screen">
+        <div class="robot">👀<br>🤖</div>
+        <h1>שלום! אני ספארקי</h1>
+        <div class="card">
+            <p>שם מלא או כינוי</p>
+            <input type="text" id="name-input" placeholder="שם מלא או כינוי...">
+        </div>
+        <button onclick="saveName()">🚀 בואו נתחיל!</button>
+        <p id="name-error"></p>
+    </div>
+
+    <!-- מסך ראשי -->
+    <div id="main-screen" class="hidden">
+        <div class="robot">👀<br>🤖</div>
+        <h1 id="greeting">שלום!</h1>
+        <div id="player-record" class="card hidden"></div>
+        <p id="main-subtitle">מה עושים היום?</p>
+        <button onclick="goToDifficulty()">🧩 חידות</button>
+        <button onclick="goToJoke()">😂 בדיחה</button>
+        <button onclick="goToMovie()">🎬 סרט</button>
+        <button onclick="goToAsk()">❓ שאל את ספארקי</button>
+        <button onclick="showLeaderboard()">🏆 שלושת המובילים</button>
+    </div>
+
+    <!-- מסך בחירת רמה -->
+    <div id="difficulty-screen" class="hidden">
+        <div class="robot">🤔</div>
+        <h2>באיזו רמה תתחיל?</h2>
+        <button class="btn-easy"   onclick="startRiddles('easy')">🟢 מתחיל</button>
+        <button class="btn-medium" onclick="startRiddles('medium')">🟡 מתקדם</button>
+        <button class="btn-hard"   onclick="startRiddles('hard')">🔴 אלוף</button>
+        <button class="btn-genius" onclick="startRiddles('genius')">🟣 גאון</button>
+        <button class="btn-king"   onclick="startRiddles('king')">👑 מלך החידות</button>
+        <button class="back-btn"   onclick="goBack()">🔙 חזרה לתפריט</button>
+    </div>
+
+    <!-- מסך חידה -->
+    <div id="riddle-screen" class="hidden">
+        <div id="level-indicator"></div>
+        <div id="score-display">⭐ <span id="score-value">0</span> נקודות</div>
+        <div id="progress-wrap">
+            <div id="progress-bar"></div>
+        </div>
+        <div id="progress-label"></div>
+        <div class="card">
+            <p id="riddle-question"></p>
+        </div>
+        <div id="riddle-options"></div>
+        <div id="numeric-area" class="hidden">
+            <input type="number" id="numeric-answer-input" placeholder="הכנס מספר...">
+            <p id="numeric-error"></p>
+            <button id="numeric-check-btn" onclick="checkNumericInput()">✔️ בדוק</button>
+        </div>
+        <p id="riddle-result"></p>
+        <button id="next-riddle-btn" class="hidden" onclick="showRiddle()">🧩 חידה נוספת</button>
+        <button onclick="showSummary()">🏁 סיום משחק</button>
+        <button class="back-btn" onclick="goBack()">🔙 חזרה לתפריט</button>
+    </div>
+
+    <!-- מסך עליית רמה -->
+    <div id="levelup-screen" class="hidden">
+        <div class="levelup-emoji" id="levelup-emoji">🎉</div>
+        <h2 id="levelup-title"></h2>
+        <p id="levelup-msg"></p>
+        <button id="levelup-continue-btn" onclick="continueAfterLevelup()">▶️ המשיכו!</button>
+        <button onclick="showSummary()">📊 ראה סיכום</button>
+        <button class="back-btn" onclick="goBack()">🔙 חזרה לתפריט</button>
+    </div>
+
+    <!-- מסך סיכום -->
+    <div id="summary-screen" class="hidden">
+        <h2 id="summary-title"></h2>
+        <div class="card" id="summary-stats"></div>
+        <h3>🏆 שלושת המובילים</h3>
+        <div id="summary-leaderboard" class="card"></div>
+        <button onclick="showLeaderboard()">🏆 שלושת המובילים המלאה</button>
+        <button class="back-btn" onclick="goBack()">🔙 חזרה לתפריט</button>
+    </div>
+
+    <!-- מסך טבלת אלופים -->
+    <div id="leaderboard-screen" class="hidden">
+        <h2>🏆 שלושת המובילים</h2>
+        <div id="leaderboard-list" class="card"></div>
+        <div id="weekly-section" class="hidden">
+            <h3>🔥 שיאני השבוע</h3>
+            <div id="weekly-list" class="card"></div>
+        </div>
+        <button class="back-btn" onclick="goBack()">🔙 חזרה לתפריט</button>
+    </div>
+
+    <!-- מסך בדיחה -->
+    <div id="joke-screen" class="hidden">
+        <h2>😂 בדיחה</h2>
+        <div class="card"><p id="joke-text"></p></div>
+        <button onclick="showJoke()">😂 עוד בדיחה</button>
+        <button class="back-btn" onclick="goBack()">🔙 חזרה לתפריט</button>
+    </div>
+
+    <!-- מסך סרט -->
+    <div id="movie-screen" class="hidden">
+        <h2>🎬 המלצת סרט</h2>
+        <div class="card"><p id="movie-text"></p></div>
+        <button onclick="showMovie()">🎬 המלצה נוספת</button>
+        <button class="back-btn" onclick="goBack()">🔙 חזרה לתפריט</button>
+    </div>
+
+    <!-- מסך שאל את ספארקי -->
+    <div id="ask-screen" class="hidden">
+        <h2>❓ שאל את ספארקי</h2>
+        <input type="text" id="ask-input" placeholder="כתבו את השאלה שלכם...">
+        <button onclick="submitQuestion()">📨 שלח שאלה</button>
+        <div id="ask-answer-card" class="card hidden">
+            <p id="ask-answer"></p>
+        </div>
+        <button class="back-btn" onclick="goBack()">🔙 חזרה לתפריט</button>
+    </div>
+
+</div>
+<script src="script.js"></script>
+</body>
+</html>
