@@ -4,6 +4,13 @@ const POINTS_CORRECT = 10;
 const STORAGE_KEY    = "sparky_players";
 const LEVEL_ORDER    = ["easy", "medium", "hard", "genius", "king"];
 
+const ACHIEVEMENTS = [
+    { key: "beginner",  label: "🥉 מתחיל חידות",  threshold: 10  },
+    { key: "champion",  label: "🥈 אלוף חידות",    threshold: 25  },
+    { key: "genius",    label: "🥇 גאון חידות",    threshold: 50  },
+    { key: "king",      label: "👑 מלך החידות",    threshold: 100 }
+];
+
 // ── מצב הסשן (בזיכרון בלבד) ──
 let currentUserName     = "";
 let currentDifficulty   = "easy";
@@ -301,6 +308,13 @@ function getLevelLabel(key) {
     return difficultyConfig[key] ? difficultyConfig[key].label : key;
 }
 
+function getAchievement(score) {
+    for (let i = ACHIEVEMENTS.length - 1; i >= 0; i--) {
+        if (score >= ACHIEVEMENTS[i].threshold) return ACHIEVEMENTS[i];
+    }
+    return null;
+}
+
 // ── localStorage ──
 function loadPlayers() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
@@ -314,16 +328,21 @@ function getPlayer(name) {
     return loadPlayers().find(p => p.name.toLowerCase() === nl) || null;
 }
 
-// מצבר ניקוד — מוסיף לסך הקיים, לא מחליף
+// מצבר ניקוד — מוסיף לסך הקיים, לא מחליף. מחזיר הישגים שנפתחו עכשיו.
 function upsertPlayer(name, sessionScore, correct, wrong, level) {
     const players = loadPlayers();
     const today   = new Date().toISOString().split("T")[0];
     const nl      = name.toLowerCase().trim();
     const idx     = players.findIndex(p => p.name.toLowerCase() === nl);
+    let newlyUnlocked = [];
+
     if (idx === -1) {
+        newlyUnlocked = ACHIEVEMENTS.filter(a => sessionScore >= a.threshold);
         players.push({ name, score: sessionScore, correctTotal: correct,
-                       wrongTotal: wrong, highestLevel: level, date: today });
+                       wrongTotal: wrong, highestLevel: level, date: today,
+                       earnedAchievements: newlyUnlocked.map(a => a.key) });
     } else {
+        if (!players[idx].earnedAchievements) players[idx].earnedAchievements = [];
         players[idx].score        += sessionScore;
         players[idx].correctTotal  = (players[idx].correctTotal || 0) + correct;
         players[idx].wrongTotal    = (players[idx].wrongTotal   || 0) + wrong;
@@ -331,8 +350,14 @@ function upsertPlayer(name, sessionScore, correct, wrong, level) {
         if (LEVEL_ORDER.indexOf(level) > LEVEL_ORDER.indexOf(players[idx].highestLevel)) {
             players[idx].highestLevel = level;
         }
+        newlyUnlocked = ACHIEVEMENTS.filter(a =>
+            players[idx].score >= a.threshold &&
+            !players[idx].earnedAchievements.includes(a.key)
+        );
+        newlyUnlocked.forEach(a => players[idx].earnedAchievements.push(a.key));
     }
     savePlayers(players);
+    return newlyUnlocked;
 }
 
 // ── רשומת שחקן במסך הבית ──
@@ -342,9 +367,11 @@ function updatePlayerRecord() {
     if (!existing) {
         el.innerHTML = "<p>ברוך הבא לספארקי! 🎉</p>";
     } else {
+        const achievement = getAchievement(existing.score);
         el.innerHTML =
             "<p>👤 <strong>" + escapeHTML(existing.name) + "</strong></p>" +
             "<p>⭐ סך הניקוד: <strong>" + existing.score + "</strong></p>" +
+            (achievement ? "<p>🏅 הישג: <strong>" + achievement.label + "</strong></p>" : "") +
             "<p>🏆 הרמה הגבוהה: <strong>" + getLevelLabel(existing.highestLevel) + "</strong></p>";
     }
     el.classList.remove("hidden");
@@ -548,8 +575,9 @@ function continueAfterLevelup() {
 
 // ── סיכום ──
 function showSummary() {
+    let newlyUnlocked = [];
     if (currentUserName) {
-        upsertPlayer(currentUserName, currentScore, sessionCorrect, sessionWrong, sessionHighestLevel);
+        newlyUnlocked = upsertPlayer(currentUserName, currentScore, sessionCorrect, sessionWrong, sessionHighestLevel);
     }
     const saved       = currentUserName ? getPlayer(currentUserName) : null;
     const totalScore  = saved ? saved.score : currentScore;
@@ -567,6 +595,10 @@ function showSummary() {
         top5.length > 0 ? buildLeaderboardHTML(top5) : "<p>אין שחקנים עדיין. 🌟</p>";
 
     showScreen("summary-screen");
+
+    if (newlyUnlocked.length > 0) {
+        showAchievementModal(newlyUnlocked[newlyUnlocked.length - 1]);
+    }
 }
 
 // ── טבלת אלופים ──
@@ -591,12 +623,28 @@ function showLeaderboard() {
 function buildLeaderboardHTML(players) {
     const medals = ["🥇", "🥈", "🥉"];
     return players.map((p, i) => {
-        const medal = medals[i] || (i + 1) + ".";
-        const isMe  = p.name.toLowerCase() === currentUserName.toLowerCase();
+        const medal       = medals[i] || (i + 1) + ".";
+        const isMe        = p.name.toLowerCase() === currentUserName.toLowerCase();
+        const achievement = getAchievement(p.score);
+        const badge       = achievement
+            ? " <span class=\"achievement-badge\">" + achievement.label + "</span>"
+            : "";
         return "<div class=\"leaderboard-row" + (isMe ? " leaderboard-me" : "") + "\">" +
-            medal + " " + escapeHTML(p.name) + " &mdash; " + p.score + " נק'" +
+            medal + " " + escapeHTML(p.name) + badge + " &mdash; " + p.score + " נק'" +
             "</div>";
     }).join("");
+}
+
+// ── מודל הישג ──
+function showAchievementModal(achievement) {
+    const emojiMap = { beginner: "🥉", champion: "🥈", genius: "🥇", king: "👑" };
+    document.getElementById("achievement-emoji").innerText = emojiMap[achievement.key] || "🏅";
+    document.getElementById("achievement-label").innerText = achievement.label;
+    document.getElementById("achievement-modal").classList.remove("hidden");
+}
+
+function closeAchievementModal() {
+    document.getElementById("achievement-modal").classList.add("hidden");
 }
 
 // ── קונפטי ──
